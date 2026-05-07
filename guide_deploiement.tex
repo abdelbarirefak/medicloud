@@ -1,0 +1,511 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\setlength{\headheight}{15pt}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm, top=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+% ── Colors ───────────────────────────────────────────────────────────────────
+\definecolor{teal}{RGB}{20, 184, 166}
+\definecolor{indigo}{RGB}{99, 102, 241}
+\definecolor{codebg}{RGB}{30, 30, 30}
+\definecolor{codetext}{RGB}{220, 220, 220}
+\definecolor{infobg}{RGB}{240, 249, 255}
+\definecolor{infoborder}{RGB}{14, 165, 233}
+\definecolor{warnbg}{RGB}{255, 251, 235}
+\definecolor{warnborder}{RGB}{245, 158, 11}
+\definecolor{successbg}{RGB}{240, 253, 244}
+\definecolor{successborder}{RGB}{34, 197, 94}
+
+% ── Hyperref config ───────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=teal,
+  urlcolor=indigo,
+  pdftitle={Guide de Déploiement MediCloud},
+  pdfauthor={Noaman Makhlouf}
+}
+
+% ── Code listings style ───────────────────────────────────────────────────────
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small\color{codetext},
+  breaklines=true,
+  frame=single,
+  framesep=5pt,
+  rulecolor=\color{teal},
+  xleftmargin=10pt,
+  xrightmargin=10pt,
+  aboveskip=10pt,
+  belowskip=10pt,
+  showstringspaces=false,
+  keywordstyle=\color{teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{orange},
+}
+
+% ── Custom boxes ─────────────────────────────────────────────────────────────
+\tcbuselibrary{breakable, skins}
+
+\newtcolorbox{infobox}[1]{
+  colback=infobg,
+  colframe=infoborder,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+\newtcolorbox{warnbox}[1]{
+  colback=warnbg,
+  colframe=warnborder,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+\newtcolorbox{successbox}[1]{
+  colback=successbg,
+  colframe=successborder,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable
+}
+
+% ── Section styles ────────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{teal}}
+  {\thesection.}{0.5em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{indigo}}
+  {\thesubsection.}{0.5em}{}
+
+% ── Header/Footer ─────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{teal}{\textbf{MediCloud}} — Guide de Déploiement}
+\lhead{\textcolor{gray}{\small Noaman Makhlouf}}
+\rfoot{\thepage}
+\lfoot{\textcolor{gray}{\small ENSEM — Application Cloud Native}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Title page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\huge\bfseries\color{teal} MediCloud}\\[0.5cm]
+  {\Large\color{indigo} Guide Complet de Déploiement}\\[0.3cm]
+  {\large\color{gray} Du clonage GitHub au déploiement Vercel}
+
+  \vspace{1.5cm}
+  \rule{0.6\textwidth}{1.5pt}
+  \vspace{1cm}
+
+  \begin{tcolorbox}[colback=teal!10, colframe=teal, width=0.8\textwidth]
+    \centering
+    Ce guide a été rédigé pour permettre à n'importe quel développeur de
+    \textbf{lancer MediCloud localement} et de le \textbf{déployer en production}
+    sur Vercel, pas à pas, depuis zéro.
+  \end{tcolorbox}
+
+  \vspace{1.5cm}
+  {\textbf{Auteur :} Noaman Makhlouf}\\[0.3cm]
+  {\textbf{Dépôt GitHub :} \href{https://github.com/Noamane2023/medicloud}{\texttt{github.com/Noamane2023/medicloud}}}\\[0.3cm]
+  {\textbf{Stack technique :} Next.js 16 · Supabase · Upstash Redis · Vercel}\\[0.3cm]
+  {\textbf{Date :} \today}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction — Qu'est-ce que MediCloud ?}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\textbf{MediCloud} est une plateforme de télémédecine Cloud-Native développée
+dans le cadre d'un projet académique à l'ENSEM. Elle permet à des patients
+de trouver un médecin, de réserver un rendez-vous en ligne, et de gérer
+un dossier médical numérique — le tout depuis un smartphone ou un navigateur.
+
+\subsection*{Architecture technique en bref}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Couche} & \textbf{Technologie} & \textbf{Rôle} \\
+  \midrule
+  Front-end  & Next.js 16 + React & Interface utilisateur PWA \\
+  Back-end   & API Routes (Serverless) & Logique métier \\
+  Base de données & Supabase (PostgreSQL) & Données persistantes \\
+  Cache      & Upstash Redis & Réponses rapides sous charge \\
+  Emails     & Resend API & Rappels de rendez-vous \\
+  Déploiement & Vercel & Hébergement Cloud Edge \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Étape 1 — Prérequis : Logiciels à Installer}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Avant de commencer, tu dois avoir installé les outils suivants sur ton
+ordinateur (Windows, macOS ou Linux).
+
+\subsection{Node.js (v18 ou supérieur)}
+
+Node.js est le moteur d'exécution JavaScript utilisé par Next.js.
+
+\begin{enumerate}[label=\arabic*.]
+  \item Rends-toi sur \href{https://nodejs.org}{\texttt{nodejs.org}}
+  \item Télécharge la version \textbf{LTS} (Long Term Support)
+  \item Installe-le en gardant les options par défaut
+  \item Vérifie l'installation en ouvrant un terminal et en tapant :
+\end{enumerate}
+
+\begin{lstlisting}[language=bash]
+node --version
+# Attendu : v18.x.x ou superieur
+
+npm --version
+# Attendu : 9.x.x ou superieur
+\end{lstlisting}
+
+\subsection{Git}
+
+Git est le système de contrôle de version utilisé pour télécharger le code
+depuis GitHub.
+
+\begin{enumerate}[label=\arabic*.]
+  \item Rends-toi sur \href{https://git-scm.com/downloads}{\texttt{git-scm.com/downloads}}
+  \item Télécharge et installe Git selon ton système d'exploitation
+  \item Vérifie l'installation :
+\end{enumerate}
+
+\begin{lstlisting}[language=bash]
+git --version
+# Attendu : git version 2.x.x
+\end{lstlisting}
+
+\subsection{Visual Studio Code (éditeur recommandé)}
+
+\href{https://code.visualstudio.com}{\texttt{code.visualstudio.com}} — Télécharge
+et installe VS Code. C'est l'éditeur de code le plus populaire pour le
+développement web moderne.
+
+\textbf{Extensions recommandées à installer dans VS Code :}
+\begin{itemize}
+  \item \texttt{ESLint} — Détection d'erreurs JavaScript/TypeScript
+  \item \texttt{Tailwind CSS IntelliSense} — Autocomplétion CSS
+  \item \texttt{Prettier} — Formatage automatique du code
+  \item \texttt{GitLens} — Visualisation Git avancée
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Étape 2 — Créer un Compte GitHub et Accéder au Dépôt}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Créer un compte GitHub}
+
+\begin{enumerate}[label=\arabic*.]
+  \item Va sur \href{https://github.com}{\texttt{github.com}}
+  \item Clique sur \textbf{"Sign up"}
+  \item Remplis le formulaire : adresse email, mot de passe, nom d'utilisateur
+  \item Confirme ton email
+  \item Envoie ton \textbf{nom d'utilisateur GitHub} à Noaman pour être ajouté
+        comme collaborateur sur le dépôt
+\end{enumerate}
+
+\begin{warnbox}{Important — Communique ton pseudonyme GitHub}
+  Dis à Noaman ton nom d'utilisateur GitHub (pas ton email) pour qu'il
+  t'ajoute aux collaborateurs du dépôt. Tu recevras une invitation par email
+  à accepter.
+\end{warnbox}
+
+\subsection{Accepter l'invitation de collaboration}
+
+\begin{enumerate}[label=\arabic*.]
+  \item Vérifie ta boîte email
+  \item Clique sur le lien d'\textbf{invitation GitHub}
+  \item Accepte l'accès au dépôt \texttt{Noamane2023/medicloud}
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Étape 3 — Cloner et Lancer le Projet Localement}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Cloner le dépôt}
+
+Ouvre un terminal (PowerShell, Terminal macOS ou Bash Linux) et exécute :
+
+\begin{lstlisting}[language=bash]
+# Navigue vers le dossier de ton choix
+cd Documents
+
+# Clone le depot depuis GitHub
+git clone https://github.com/Noamane2023/medicloud.git
+
+# Entre dans le dossier du projet
+cd medicloud
+\end{lstlisting}
+
+\subsection{Installer les dépendances}
+
+\begin{lstlisting}[language=bash]
+# Installe tous les packages necessaires
+npm install
+\end{lstlisting}
+
+Cette commande va télécharger toutes les bibliothèques listées dans le
+fichier \texttt{package.json} (React, Next.js, Supabase SDK, etc.).
+
+\subsection{Configurer les variables d'environnement}
+
+Le projet a besoin de clés secrètes pour se connecter aux services en ligne.
+Ces clés ne sont \textbf{jamais} publiées sur GitHub pour des raisons de sécurité.
+
+\begin{enumerate}[label=\arabic*.]
+  \item Crée un fichier \texttt{.env.local} à la racine du projet
+  \item Demande à Noaman de te partager les valeurs privées
+  \item Remplis le fichier ainsi :
+\end{enumerate}
+
+\begin{lstlisting}
+# .env.local - Ne jamais partager ce fichier !
+
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJ...
+
+RESEND_API_KEY=re_xxxxxxxxxxxx
+CRON_SECRET=medicloud_cron_2026
+
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxxxxxxx
+\end{lstlisting}
+
+\subsection{Lancer le serveur de développement}
+
+\begin{lstlisting}[language=bash]
+npm run dev
+\end{lstlisting}
+
+\begin{successbox}{Succès !}
+  Ouvre ton navigateur sur \textbf{\href{http://localhost:3000}{\texttt{http://localhost:3000}}}.
+  Tu devrais voir la page d'accueil de MediCloud. \\
+  Le serveur local se rechargera automatiquement à chaque modification du code.
+\end{successbox}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Étape 4 — Déploiement en Production sur Vercel}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Vercel est la plateforme Cloud officielle de déploiement pour les applications
+Next.js. Elle offre un \textbf{déploiement continu} : chaque push sur GitHub
+met à jour automatiquement l'application en production.
+
+\subsection{Créer un compte Vercel}
+
+\begin{enumerate}[label=\arabic*.]
+  \item Va sur \href{https://vercel.com}{\texttt{vercel.com}}
+  \item Clique sur \textbf{"Sign Up"}
+  \item Authentifie-toi avec ton \textbf{compte GitHub} (recommandé)
+\end{enumerate}
+
+\subsection{Importer le projet depuis GitHub}
+
+\begin{enumerate}[label=\arabic*.]
+  \item Dans le Dashboard Vercel, clique sur \textbf{"Add New... → Project"}
+  \item Sélectionne le dépôt \texttt{medicloud} depuis la liste GitHub
+  \item Vercel détecte automatiquement qu'il s'agit d'un projet \textbf{Next.js}
+  \item \textbf{Ne clique pas encore sur "Deploy"} — il faut d'abord ajouter les variables
+\end{enumerate}
+
+\subsection{Ajouter les variables d'environnement}
+
+Dans la section \textbf{"Environment Variables"} de la page de configuration Vercel :
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Nom de la variable} & \textbf{Description} \\
+  \midrule
+  \texttt{NEXT\_PUBLIC\_SUPABASE\_URL} & URL de ta base de données Supabase \\
+  \texttt{NEXT\_PUBLIC\_SUPABASE\_ANON\_KEY} & Clé publique Supabase \\
+  \texttt{SUPABASE\_SERVICE\_ROLE\_KEY} & Clé admin secrète Supabase \\
+  \texttt{RESEND\_API\_KEY} & Clé API pour l'envoi d'emails \\
+  \texttt{CRON\_SECRET} & Mot de passe pour sécuriser les Cron Jobs \\
+  \texttt{UPSTASH\_REDIS\_REST\_URL} & URL de la base de données Redis \\
+  \texttt{UPSTASH\_REDIS\_REST\_TOKEN} & Token d'authentification Redis \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}{Attention à la sécurité}
+  Les variables préfixées \texttt{NEXT\_PUBLIC\_} sont visibles par le navigateur.
+  Ne mets \textbf{jamais} de données sensibles (clés secrètes) dans des variables
+  \texttt{NEXT\_PUBLIC\_}. Supabase et Vercel gèrent cela automatiquement.
+\end{warnbox}
+
+\subsection{Lancer le déploiement}
+
+\begin{enumerate}[label=\arabic*.]
+  \item Clique sur \textbf{"Deploy"}
+  \item Vercel va compiler et déployer l'application (environ 2 à 4 minutes)
+  \item À la fin, tu obtiens une URL publique du type :
+        \texttt{https://medicloud-xxxx.vercel.app}
+\end{enumerate}
+
+\subsection{Déploiement Continu (CD)}
+
+Après la configuration initiale, chaque fois que quelqu'un push du code
+sur la branche \texttt{main} de GitHub, Vercel \textbf{redéploie automatiquement}
+l'application sans aucune action manuelle.
+
+\begin{lstlisting}[language=bash]
+# Workflow de mise a jour standard
+git add .
+git commit -m "feat: nouvelle fonctionnalite"
+git push origin main
+# -> Vercel detecte le push et relance le deploiement automatiquement
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Étape 5 — Vérification Post-Déploiement}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Checklist de vérification}
+
+\begin{itemize}[label=$\checkmark$]
+  \item L'URL Vercel s'ouvre et affiche la page d'accueil
+  \item La page \texttt{/login} fonctionne et permet la connexion
+  \item La recherche de médecins (\texttt{/patient/search}) affiche des résultats
+  \item Dans l'onglet \textbf{Cron} du Dashboard Vercel, les tâches planifiées
+        sont visibles et actives
+  \item Dans Chrome DevTools $\rightarrow$ Application $\rightarrow$ Service Workers, le worker
+        est actif (\textit{"Activated and running"})
+\end{itemize}
+
+\subsection{Tester les Cron Jobs manuellement}
+
+Pour vérifier que les tâches automatiques fonctionnent, appelle ces URLs
+(avec un token d'autorisation) :
+
+\begin{lstlisting}
+# Rappels email (simulation)
+https://ton-app.vercel.app/api/cron/reminders?bypass=true
+
+# Nettoyage automatique de la BDD
+https://ton-app.vercel.app/api/cron/cleanup?bypass=true
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Ce que tu Devrais Apprendre — Feuille de Route}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Pour comprendre en profondeur comment ce projet fonctionne et progresser
+en développement web Cloud, voici les compétences clés à acquérir :
+
+\subsection{Fondations (indispensables)}
+
+\begin{itemize}
+  \item \textbf{JavaScript/TypeScript} — Le langage de base de tout le projet.
+        Ressource : \href{https://javascript.info}{\texttt{javascript.info}}
+  \item \textbf{React.js} — La bibliothèque qui construit l'interface.
+        Ressource : \href{https://react.dev}{\texttt{react.dev}}
+  \item \textbf{Next.js} — Le framework Full-Stack qui orchestre tout.
+        Ressource : \href{https://nextjs.org/learn}{\texttt{nextjs.org/learn}}
+  \item \textbf{Git \& GitHub} — Contrôle de version et collaboration.
+        Ressource : \href{https://learngitbranching.js.org}{\texttt{learngitbranching.js.org}}
+\end{itemize}
+
+\subsection{Back-end \& Bases de Données}
+
+\begin{itemize}
+  \item \textbf{SQL \& PostgreSQL} — Comprendre les requêtes, les tables, les jointures.
+  \item \textbf{Supabase} — BaaS (Backend as a Service) : Auth, BDD, Storage.
+        Ressource : \href{https://supabase.com/docs}{\texttt{supabase.com/docs}}
+  \item \textbf{API REST} — Comment concevoir et consommer des APIs HTTP.
+  \item \textbf{Authentification JWT} — Tokens, sessions, sécurité.
+\end{itemize}
+
+\subsection{Cloud \& DevOps}
+
+\begin{itemize}
+  \item \textbf{Vercel} — Déploiement, CI/CD, Serverless Functions, Cron Jobs.
+        Ressource : \href{https://vercel.com/docs}{\texttt{vercel.com/docs}}
+  \item \textbf{Variables d'environnement} — Gestion des secrets en production.
+  \item \textbf{DNS \& Domaines} — Comment configurer un domaine personnalisé.
+  \item \textbf{Redis (Upstash)} — Cache distribué pour la scalabilité.
+\end{itemize}
+
+\subsection{Concepts Cloud Native avancés (pour aller plus loin)}
+
+\begin{itemize}
+  \item \textbf{Progressive Web Apps (PWA)} — Service Workers, Manifestes, Mode hors-ligne.
+  \item \textbf{Serverless Architecture} — Functions as a Service (FaaS), Cron Jobs.
+  \item \textbf{Edge Computing} — Exécuter du code au plus près de l'utilisateur.
+  \item \textbf{Row Level Security (RLS)} — Sécurité au niveau des lignes de BDD.
+  \item \textbf{CI/CD Pipelines} — Déploiement automatisé à chaque commit.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Ressources et Références}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Ressource} & \textbf{Lien} & \textbf{Usage} \\
+  \midrule
+  Code source & \href{https://github.com/Noamane2023/medicloud}{\texttt{github.com/Noamane2023/medicloud}} & Accès au projet \\
+  Next.js Docs & \href{https://nextjs.org/docs}{\texttt{nextjs.org/docs}} & Framework \\
+  Supabase Docs & \href{https://supabase.com/docs}{\texttt{supabase.com/docs}} & Base de données \\
+  Vercel Docs & \href{https://vercel.com/docs}{\texttt{vercel.com/docs}} & Déploiement \\
+  Upstash Docs & \href{https://docs.upstash.com}{\texttt{docs.upstash.com}} & Redis Cache \\
+  Resend Docs & \href{https://resend.com/docs}{\texttt{resend.com/docs}} & Emails \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Conclusion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+En suivant ce guide, tu as pu :
+\begin{itemize}
+  \item Installer l'environnement de développement complet
+  \item Lancer MediCloud localement sur ton ordinateur
+  \item Déployer l'application en production sur Vercel
+  \item Comprendre la feuille de route pour maîtriser ces technologies
+\end{itemize}
+
+\begin{successbox}{Bravo !}
+  Le développement Cloud Native est l'une des compétences les plus demandées
+  dans l'industrie tech. Les technologies utilisées dans ce projet (Next.js,
+  Supabase, Vercel, Redis) sont utilisées par des milliers d'entreprises
+  à travers le monde. Continue à explorer !
+\end{successbox}
+
+\vspace{1cm}
+\begin{center}
+  \textit{Document rédigé avec \LaTeX\ par Noaman Makhlouf — ENSEM 2026}
+\end{center}
+
+\end{document}
