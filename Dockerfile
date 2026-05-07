@@ -1,4 +1,4 @@
-# Étape 1 : Installation des dépendances (Garde en cache si les packages ne changent pas)
+# Étape 1 : Installation des dépendances
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -9,25 +9,29 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# La commande de build trouvée dans ton package.json
+
+# --- AJOUT CRUCIAL : Variables "bouchons" pour le build ---
+# Next.js a besoin de ces variables pour compiler le code sans crasher.
+ENV NEXT_PUBLIC_SUPABASE_URL="https://placeholder.supabase.co"
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="placeholder"
+ENV UPSTASH_REDIS_REST_URL="https://placeholder.upstash.io"
+ENV UPSTASH_REDIS_REST_TOKEN="placeholder"
+# ----------------------------------------------------------
+
 RUN npm run build 
 
 # Étape 3 : Image finale allégée pour la production (Runner)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Définition de l'environnement de production
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
-# Copie uniquement des fichiers nécessaires depuis l'étape de build
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Next.js écoute par défaut sur le port 3000
 EXPOSE 3000
-ENV PORT 3000
+ENV PORT=3000
 
-# La commande de démarrage trouvée dans ton package.json
 CMD ["npm", "run", "start"]
