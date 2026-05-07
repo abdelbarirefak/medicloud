@@ -10,13 +10,16 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# --- AJOUT CRUCIAL : Variables "bouchons" pour le build ---
-# Next.js a besoin de ces variables pour compiler le code sans crasher.
+# --- VARIABLES "BOUCHONS" POUR LE BUILD ---
 ENV NEXT_PUBLIC_SUPABASE_URL="https://placeholder.supabase.co"
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="placeholder"
+ENV SUPABASE_URL="https://placeholder.supabase.co"
+ENV SUPABASE_ANON_KEY="placeholder"
+ENV SUPABASE_SERVICE_ROLE_KEY="placeholder"
+ENV SUPABASE_KEY="placeholder"
 ENV UPSTASH_REDIS_REST_URL="https://placeholder.upstash.io"
 ENV UPSTASH_REDIS_REST_TOKEN="placeholder"
-# ----------------------------------------------------------
+# ------------------------------------------
 
 RUN npm run build 
 
